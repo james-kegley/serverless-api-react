@@ -1,0 +1,60 @@
+service: myRestApi
+
+provider:
+    name: aws
+    runtime: nodejs12.x
+    region: ap-southeast-2
+    environment:
+      tableName: ${self:custom.tableName}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:*
+        Resource: '*'
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+  - serverless-dynamodb-local
+
+
+functions:
+  insertUser:
+    handler: lambdas/endpoints/insertUser.handler
+    events:
+      - http:
+          path: insertUser/{ID}
+          method: POST
+          cors: true
+  
+  getUser:
+    handler: lambdas/endpoints/getUsers.handler
+    events:
+      - http:
+          path: getUsers
+          method: GET
+          cors: true
+
+custom:
+  tableName: usersTable
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+
+resources: # CloudFormation template syntax
+  Resources:
+    MyDynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: ID        
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ID 
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
